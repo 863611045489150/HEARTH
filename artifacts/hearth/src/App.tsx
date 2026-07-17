@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 
 import AuthPage from '@/pages/auth';
+import AuthCallbackPage from '@/pages/auth-callback';
 import HomePage from '@/pages/home';
 import DashboardPage from '@/pages/dashboard';
 import NotesPage from '@/pages/notes';
@@ -17,6 +18,7 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/">
         <AuthenticatedLayout>
           <HomePage />

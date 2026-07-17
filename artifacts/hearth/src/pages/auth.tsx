@@ -1,109 +1,58 @@
-import * as React from "react"
-import { useLocation } from "wouter"
-import { useLogin, useRegister, useSendOtp, useVerifyOtp } from "@workspace/api-client-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { motion, AnimatePresence } from "framer-motion"
-import { useToast } from "@/components/ui/use-toast"
+import * as React from "react";
+import { motion } from "framer-motion";
+import { useToast } from "@/components/ui/use-toast";
+import { getSupabaseClient, getCallbackUrl } from "@/lib/supabase";
 
-type AuthMode = "phone" | "email"
-type PhoneStep = "phone" | "otp"
-
-const inputClass =
-  "border-0 border-b border-border rounded-none px-0 h-12 text-lg focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/40 bg-transparent"
+// Google "G" logo as a clean SVG — no external dependency
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+        fill="#4285F4"
+      />
+      <path
+        d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+        fill="#34A853"
+      />
+      <path
+        d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
 
 export default function AuthPage() {
-  const [mode, setMode] = React.useState<AuthMode>("phone")
-  const [phoneStep, setPhoneStep] = React.useState<PhoneStep>("phone")
-  const [isLogin, setIsLogin] = React.useState(true)
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
 
-  // Phone fields
-  const [phone, setPhone] = React.useState("")
-  const [otp, setOtp] = React.useState("")
-
-  // Email fields
-  const [email, setEmail] = React.useState("")
-  const [password, setPassword] = React.useState("")
-
-  const [, setLocation] = useLocation()
-  const { toast } = useToast()
-
-  const sendOtp = useSendOtp()
-  const verifyOtp = useVerifyOtp()
-  const login = useLogin()
-  const register = useRegister()
-
-  // ─── Phone flow ───────────────────────────────────────────────
-  const handleSendOtp = (e: React.FormEvent) => {
-    e.preventDefault()
-    const normalized = phone.startsWith("+") ? phone : `+${phone}`
-    sendOtp.mutate(
-      { data: { phone: normalized } },
-      {
-        onSuccess: () => {
-          setPhoneStep("otp")
-          toast({ title: "Code sent", description: `OTP sent to ${normalized}` })
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const supabase = await getSupabaseClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: getCallbackUrl(),
+          queryParams: { prompt: "select_account" },
         },
-        onError: (err: any) => {
-          toast({
-            title: "Could not send OTP",
-            description: err?.data?.error ?? "Check the number and try again",
-            variant: "destructive",
-          })
-        },
-      }
-    )
-  }
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault()
-    const normalized = phone.startsWith("+") ? phone : `+${phone}`
-    verifyOtp.mutate(
-      { data: { phone: normalized, token: otp } },
-      {
-        onSuccess: (res: any) => {
-          localStorage.setItem("hearth_token", res.token)
-          setLocation("/")
-        },
-        onError: (err: any) => {
-          toast({
-            title: "Invalid code",
-            description: err?.data?.error ?? "The code is wrong or expired",
-            variant: "destructive",
-          })
-        },
-      }
-    )
-  }
-
-  // ─── Email flow ───────────────────────────────────────────────
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const payload = { data: { email, password } }
-    const onSuccess = (res: any) => {
-      localStorage.setItem("hearth_token", res.token)
-      setLocation("/")
-    }
-    const onError = (err: any) => {
+      });
+      if (error) throw error;
+      // Browser will redirect — no need to setLoading(false)
+    } catch (err: any) {
       toast({
-        title: "Authentication failed",
-        description: err?.data?.error ?? "An error occurred",
+        title: "Sign-in failed",
+        description: err?.message ?? "Could not connect to Google. Try again.",
         variant: "destructive",
-      })
+      });
+      setLoading(false);
     }
-    if (isLogin) {
-      login.mutate(payload, { onSuccess, onError })
-    } else {
-      register.mutate(payload, { onSuccess, onError })
-    }
-  }
-
-  const isPending =
-    sendOtp.isPending ||
-    verifyOtp.isPending ||
-    login.isPending ||
-    register.isPending
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background">
@@ -111,227 +60,47 @@ export default function AuthPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-sm px-6 py-10"
+        className="w-full max-w-sm px-6 py-10 flex flex-col items-center"
       >
-        {/* Header */}
-        <div className="text-center mb-14">
-          <h1 className="font-serif text-4xl text-foreground mb-3">Welcome to Hearth</h1>
+        {/* Wordmark */}
+        <div className="text-center mb-16">
+          <h1 className="font-serif text-4xl text-foreground mb-3">Hearth</h1>
           <p className="text-muted-foreground text-xs tracking-widest uppercase">
             Your Family AI Workspace
           </p>
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* ── PHONE MODE ── */}
-          {mode === "phone" && (
-            <motion.div
-              key="phone"
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 12 }}
-              transition={{ duration: 0.15 }}
-            >
-              <AnimatePresence mode="wait">
-                {/* Step 1 — enter phone */}
-                {phoneStep === "phone" && (
-                  <motion.form
-                    key="enter-phone"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    onSubmit={handleSendOtp}
-                    className="space-y-10"
-                  >
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground tracking-wide uppercase">
-                        Phone Number
-                      </Label>
-                      <Input
-                        type="tel"
-                        placeholder="+91 98765 43210"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className={inputClass}
-                        autoComplete="tel"
-                        required
-                        autoFocus
-                      />
-                      <p className="text-xs text-muted-foreground/60 pt-1">
-                        Include country code, e.g. +91 for India
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                      <Button
-                        type="submit"
-                        disabled={isPending || phone.length < 7}
-                        className="w-full h-13 text-sm tracking-wide bg-foreground text-background hover:bg-foreground/90 rounded-none"
-                        style={{ height: "52px" }}
-                      >
-                        {sendOtp.isPending ? "Sending…" : "Send Code"}
-                      </Button>
-
-                      <button
-                        type="button"
-                        onClick={() => setMode("email")}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors tracking-wide"
-                      >
-                        Use email instead
-                      </button>
-                    </div>
-                  </motion.form>
-                )}
-
-                {/* Step 2 — enter OTP */}
-                {phoneStep === "otp" && (
-                  <motion.form
-                    key="enter-otp"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    onSubmit={handleVerifyOtp}
-                    className="space-y-10"
-                  >
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground tracking-wide uppercase">
-                        Verification Code
-                      </Label>
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={6}
-                        placeholder="6-digit code"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                        className={`${inputClass} tracking-[0.4em] text-center text-xl`}
-                        autoComplete="one-time-code"
-                        required
-                        autoFocus
-                      />
-                      <p className="text-xs text-muted-foreground/60 pt-1">
-                        Sent to {phone.startsWith("+") ? phone : `+${phone}`}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                      <Button
-                        type="submit"
-                        disabled={isPending || otp.length !== 6}
-                        className="w-full text-sm tracking-wide bg-foreground text-background hover:bg-foreground/90 rounded-none"
-                        style={{ height: "52px" }}
-                      >
-                        {verifyOtp.isPending ? "Verifying…" : "Verify & Sign In"}
-                      </Button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPhoneStep("phone")
-                          setOtp("")
-                        }}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        Change number or resend
-                      </button>
-                    </div>
-                  </motion.form>
-                )}
-              </AnimatePresence>
-            </motion.div>
+        {/* Google button */}
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-3 h-13 px-6 border border-border text-sm font-medium text-foreground hover:bg-[#fafafa] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ height: "52px" }}
+        >
+          {loading ? (
+            <span className="text-muted-foreground text-sm">Redirecting…</span>
+          ) : (
+            <>
+              <GoogleIcon />
+              Continue with Google
+            </>
           )}
+        </button>
 
-          {/* ── EMAIL MODE ── */}
-          {mode === "email" && (
-            <motion.div
-              key="email"
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.15 }}
-            >
-              <form onSubmit={handleEmailSubmit} className="space-y-10">
-                <div className="space-y-6">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground tracking-wide uppercase">
-                      Email
-                    </Label>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={inputClass}
-                      autoComplete="email"
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground tracking-wide uppercase">
-                      Password
-                    </Label>
-                    <Input
-                      type="password"
-                      placeholder="Min. 6 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={inputClass}
-                      autoComplete={isLogin ? "current-password" : "new-password"}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                </div>
+        <p className="mt-8 text-xs text-muted-foreground/50 text-center leading-relaxed">
+          By continuing you agree to use this workspace
+          <br />
+          for your family's private data only.
+        </p>
 
-                <div className="flex flex-col gap-4">
-                  <Button
-                    type="submit"
-                    disabled={isPending}
-                    className="w-full text-sm tracking-wide bg-foreground text-background hover:bg-foreground/90 rounded-none"
-                    style={{ height: "52px" }}
-                  >
-                    {isPending
-                      ? "Please wait…"
-                      : isLogin
-                      ? "Sign In"
-                      : "Create Account"}
-                  </Button>
-
-                  <div className="flex flex-col gap-2 items-center">
-                    <button
-                      type="button"
-                      onClick={() => setIsLogin(!isLogin)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {isLogin
-                        ? "Need an account? Register"
-                        : "Already have an account? Sign in"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode("phone")
-                        setPhoneStep("phone")
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Use phone number instead
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Accent dot mark */}
-        <div className="mt-16 flex justify-center">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#FF6B35" }} />
+        {/* Accent mark */}
+        <div className="mt-16">
+          <div
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: "#FF6B35" }}
+          />
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
