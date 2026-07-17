@@ -61,6 +61,36 @@ export const LoginResponse = zod.object({
 
 
 /**
+ * @summary Send OTP to a phone number
+ */
+export const SendOtpBody = zod.object({
+  "phone": zod.string().describe('E.164 format phone number e.g. +919876543210')
+})
+
+export const SendOtpResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary Verify OTP and return auth token
+ */
+export const VerifyOtpBody = zod.object({
+  "phone": zod.string(),
+  "token": zod.string().describe('6-digit OTP code')
+})
+
+export const VerifyOtpResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "token": zod.string()
+})
+
+
+/**
  * @summary Logout current session
  */
 export const LogoutResponse = zod.object({

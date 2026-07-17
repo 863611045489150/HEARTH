@@ -17,6 +17,17 @@ export interface SuccessResponse {
   success: boolean;
 }
 
+export interface PhoneInput {
+  /** E.164 format phone number e.g. +919876543210 */
+  phone: string;
+}
+
+export interface VerifyOtpInput {
+  phone: string;
+  /** 6-digit OTP code */
+  token: string;
+}
+
 export interface AuthInput {
   email: string;
   /** @minLength 6 */

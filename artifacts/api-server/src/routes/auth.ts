@@ -7,6 +7,10 @@ import {
   LoginResponse,
   GetMeResponse,
   LogoutResponse,
+  SendOtpBody,
+  SendOtpResponse,
+  VerifyOtpBody,
+  VerifyOtpResponse,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 
@@ -93,6 +97,47 @@ router.get("/auth/me", requireAuth, async (req: AuthenticatedRequest, res): Prom
     id: data.user.id,
     email: data.user.email,
     createdAt: data.user.created_at,
+  }));
+});
+
+router.post("/auth/send-otp", async (req, res): Promise<void> => {
+  const parsed = SendOtpBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.auth.signInWithOtp({ phone: parsed.data.phone });
+  if (error) {
+    res.status(400).json({ error: error.message });
+    return;
+  }
+  res.json(SendOtpResponse.parse({ success: true }));
+});
+
+router.post("/auth/verify-otp", async (req, res): Promise<void> => {
+  const parsed = VerifyOtpBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.verifyOtp({
+    phone: parsed.data.phone,
+    token: parsed.data.token,
+    type: "sms",
+  });
+  if (error || !data.user || !data.session) {
+    res.status(400).json({ error: error?.message ?? "Invalid or expired OTP" });
+    return;
+  }
+  res.json(VerifyOtpResponse.parse({
+    user: {
+      id: data.user.id,
+      email: data.user.email ?? data.user.phone ?? "",
+      createdAt: data.user.created_at,
+    },
+    token: data.session.access_token,
   }));
 });
 
