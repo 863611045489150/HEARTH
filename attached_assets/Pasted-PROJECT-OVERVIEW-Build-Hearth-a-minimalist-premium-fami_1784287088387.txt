@@ -1,0 +1,39 @@
+PROJECT OVERVIEW
+Build Hearth — a minimalist, premium, family-oriented AI workspace web app that unifies note-taking, voice-driven task organization, document generation, and business tools into a single unstructured interface. The core motive: one AI-powered surface where every family member — regardless of technical skill — speaks or types naturally, and the app intelligently structures that input into the correct format (grocery list, business ledger, college note, shipping calculation) without the user ever touching a menu.
+The product must feel like Apple, Linear, and Notion had a child that only speaks in whitespace. Zero visual clutter. Zero color except a single accent. The user's attention must always land on the content, never on the interface.
+CORE ARCHITECTURE
+Frontend: React + Vite, TypeScript, Tailwind CSS. Deployed to Vercel. Must also be wrapped via Capacitor for Android/iOS output from the same codebase, and configured as an installable PWA.
+Backend/Database: Supabase (Postgres, Auth, Storage) as the source of truth for user accounts, profiles, and session data. Notion API as a secondary sync layer — structured notes, lists, and tables optionally push to a user-connected Notion workspace and can be fetched back for display inside Hearth.
+AI Layer: Multi-provider orchestration using Groq, Gemini, and a third provider (Cerebras or similar fast-inference provider) running in parallel, NOT redundant duplicate keys of the same provider. Build a routing layer that:
+Sends the same request to whichever provider is fastest/available
+Falls back automatically if one provider errors or rate-limits
+Never uses two keys from the same provider simultaneously (this avoids any terms-of-service ambiguity — one key per provider, rotate providers not duplicate accounts)
+This is legal and standard practice: multi-provider fallback routing, not key farming
+Voice: Web Speech API for speech-to-text and text-to-speech, supporting Hindi and English, with automatic language detection so a user can switch mid-sentence.
+Export: jsPDF for PDF generation, docx.js for Word document generation, triggered by a single click on any note or table.
+AUTHENTICATION
+Full email/password authentication via Supabase Auth. Unlimited profile creation — no hard cap on family members. Each authenticated user gets their own isolated profile, data, and Notion connection (if they choose to link one).
+THE PROFILE SYSTEM (Core Differentiator)
+On first login, a small orange dot appears next to the user's avatar. Clicking it opens a lightweight modal: "Tell Hearth about yourself." The user speaks or types freely — "I run an auction and shipping business" or "I'm a college student" or "I manage our home and groceries."
+This free-text input is sent to the AI layer once, parsed into a structured profile (role, primary use-cases, tone preference), and stored in Supabase. From that point forward, every AI interaction for that user is prefixed with this context, so the same underlying app behaves like a business tool for the father, a study tool for the sister, and a household organizer for the mother — without separate codebases or separate apps.
+MODULE 1 — UNIVERSAL INPUT (The Heart of the App)
+A single centered text/voice input box, always visible, styled like a search bar but functions as a command line for natural language. User types or speaks anything. The AI layer:
+Classifies intent (list, table, note, calculation, business record)
+Extracts structured data (items, prices, dates, quantities)
+Renders the correct UI component automatically
+Auto-calculates any totals, sums, or running costs found in the input
+Offers a one-click "Save to Notion" and "Export PDF/DOCX" action
+Example: mother says "grocery list — milk 60, bread 40, rice 200, eggs 90" — Hearth renders a clean table with itemized prices and an auto-summed total, no manual math required.
+MODULE 2 — DAD'S BUSINESS TOOLS (Auction, Shipping, Transportation)
+A dedicated but visually identical (same white minimal design) workspace triggered by his profile context:
+Auction entry tracker — item, winning bid, buyer, date
+Shipping cost calculator — origin, destination, weight, auto-calculated freight estimate
+Client/link organizer — save business links with auto-generated one-line AI summaries
+All entries exportable as PDF for invoices or records
+MODULE 3 — NOTES + NOTION SYNC
+A simple, distraction-free note editor. Every note optionally syncs bidirectionally with a connected Notion workspace (via Notion's official API — user authorizes once via OAuth). Notes can be exported locally as PDF or DOCX regardless of Notion connection status, so the feature works even before Notion is set up.
+VISUAL DESIGN SYSTEM
+Code
+No gradients, no shadows beyond a 1px hairline border, no illustrations, no emoji in the UI itself (voice/AI responses can use them sparingly if contextually natural).
+NON-NEGOTIABLE QUALITY BAR
+Zero console errors on build. All Supabase environment variables validated at startup with clear error states rather than silent fetch failures. All AI provider calls wrapped in try/catch with automatic fallback to the next provider, never a raw error shown to the user. All forms have loading and empty states designed, not default browser rendering.
