@@ -58,6 +58,16 @@ export default defineConfig(async ({ command }): Promise<UserConfig> => {
       host: '0.0.0.0',
       allowedHosts: true,
       fs: { strict: true },
+      // In Replit dev, the Express API runs on port 8080 separately from the
+      // Vite dev server. Proxy /api/* to it so fetch('/api/...') works without
+      // hardcoding localhost URLs in app code.
+      // On Vercel this is handled by vercel.json rewrites instead.
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
+      },
     },
     preview: {
       port,

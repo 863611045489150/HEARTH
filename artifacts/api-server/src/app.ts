@@ -1,6 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import { pinoHttp } from "pino-http";
+import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -10,14 +10,16 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req: { id: string | number; method: string; url?: string }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      req(req: any) {
         return {
           id: req.id,
           method: req.method,
-          url: req.url?.split("?")[0],
+          url: typeof req.url === "string" ? req.url.split("?")[0] : req.url,
         };
       },
-      res(res: { statusCode: number }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      res(res: any) {
         return {
           statusCode: res.statusCode,
         };
