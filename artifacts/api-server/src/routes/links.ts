@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
+import { logger } from "../lib/logger";
 import { db, businessLinksTable } from "@workspace/db";
 import {
   CreateLinkBody,
@@ -33,7 +34,7 @@ router.post("/links", requireAuth, async (req: AuthenticatedRequest, res): Promi
   try {
     aiSummary = await generateLinkSummary(parsed.data.url, parsed.data.label ?? "");
   } catch (err) {
-    req.log.warn({ err }, "AI link summary failed");
+    logger.warn({ err }, "AI link summary failed");
     aiSummary = parsed.data.label ?? parsed.data.url;
   }
 

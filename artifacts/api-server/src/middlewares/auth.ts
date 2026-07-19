@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Request, Response, NextFunction } from "express";
+import { logger } from "../lib/logger";
 
 function getSupabaseAdmin() {
   const url = process.env["SUPABASE_URL"];
@@ -39,7 +40,7 @@ export async function requireAuth(
     req.userEmail = data.user.email;
     next();
   } catch (err) {
-    req.log.error({ err }, "Auth middleware error");
+    logger.error({ err }, "Auth middleware error");
     res.status(500).json({ error: "Authentication service unavailable" });
   }
 }

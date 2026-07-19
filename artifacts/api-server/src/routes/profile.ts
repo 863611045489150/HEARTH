@@ -4,6 +4,7 @@ import { db, profilesTable } from "@workspace/db";
 import { CreateProfileBody, GetProfileResponse, CreateProfileResponse } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 import { parseProfileText } from "../lib/ai-router";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -33,7 +34,7 @@ router.post("/profile", requireAuth, async (req: AuthenticatedRequest, res): Pro
   try {
     parsed_profile = await parseProfileText(parsed.data.rawText);
   } catch (err) {
-    req.log.warn({ err }, "AI profile parsing failed, using defaults");
+    logger.warn({ err }, "AI profile parsing failed, using defaults");
   }
 
   const [existing] = await db

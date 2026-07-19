@@ -17,6 +17,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 import { processNaturalLanguage } from "../lib/ai-router";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -35,7 +36,7 @@ router.get("/items/summary", requireAuth, async (req: AuthenticatedRequest, res)
 
   res.json(GetItemsSummaryResponse.parse({
     total: totalResult[0]?.count ?? 0,
-    byType: byTypeResult.map((r) => ({ type: r.type, count: r.count })),
+    byType: byTypeResult.map((r: { type: string | null; count: number }) => ({ type: r.type, count: r.count })),
   }));
 });
 
@@ -88,7 +89,7 @@ router.post("/items", requireAuth, async (req: AuthenticatedRequest, res): Promi
       total: aiResult.total,
     };
   } catch (err) {
-    req.log.warn({ err }, "AI processing failed, storing as note");
+    logger.warn({ err }, "AI processing failed, storing as note");
   }
 
   const [item] = await db

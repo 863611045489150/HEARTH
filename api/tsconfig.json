@@ -4,10 +4,10 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "strict": true,
-    "noImplicitAny": true,
-    "types": ["node"]
+    "noImplicitAny": true
   },
   "include": ["index.ts"]
 }

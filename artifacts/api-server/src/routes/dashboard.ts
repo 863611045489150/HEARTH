@@ -45,8 +45,8 @@ router.get("/dashboard", requireAuth, async (req: AuthenticatedRequest, res): Pr
   res.json(GetDashboardResponse.parse({
     totalNotes: notesCount[0]?.count ?? 0,
     totalItems: itemsCount[0]?.count ?? 0,
-    itemsByType: itemsByType.map((r) => ({ type: r.type, count: r.count })),
-    recentNotes: recentNotes.map((n) => ({ ...n, notionSynced: n.notionSynced === "true" })),
+    itemsByType: itemsByType.map((r: { type: string | null; count: number }) => ({ type: r.type, count: r.count })),
+    recentNotes: recentNotes.map((n: typeof recentNotes[number]) => ({ ...n, notionSynced: n.notionSynced === "true" })),
     recentItems: recentItems,
     auctionTotal: auctionTotal[0]?.total ?? 0,
   }));
