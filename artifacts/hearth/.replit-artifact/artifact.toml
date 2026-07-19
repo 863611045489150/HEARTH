@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Hearth"
+version = "1.0.0"
+id = "artifacts/hearth"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25314
+
+[services.development]
+run = "pnpm --filter @workspace/hearth run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hearth", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hearth/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25314"
+BASE_PATH = "/"
