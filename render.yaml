@@ -1,0 +1,43 @@
+# Render deployment — single web service (frontend + backend on one URL)
+# Docs: https://render.com/docs/render-yaml-spec
+
+services:
+  - type: web
+    name: hearth
+    env: node
+    plan: free
+    region: oregon
+
+    # 1. Install deps  2. Build Vite frontend  3. Build Express backend
+    buildCommand: |
+      pnpm install &&
+      pnpm --filter @workspace/hearth run build &&
+      pnpm --filter @workspace/api-server run build
+
+    # Node starts the compiled Express server; Render injects PORT automatically
+    startCommand: node artifacts/api-server/dist/index.mjs
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Vite base path — '/' because the app lives at the root of the domain
+      - key: BASE_PATH
+        value: /
+      - key: LOG_LEVEL
+        value: info
+
+      # ── Supabase ─────────────────────────────────────────────────────────────
+      - key: SUPABASE_URL
+        sync: false          # set manually in Render dashboard
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # ── AI providers (at least one required) ─────────────────────────────────
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
